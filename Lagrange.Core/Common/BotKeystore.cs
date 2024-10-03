@@ -29,7 +29,7 @@ public class BotKeystore
     /// </summary>
     /// <param name="uin">Set this field 0 to use QrCode Login</param>
     /// <param name="password">Password Raw</param>
-    internal BotKeystore(uint uin, string password)
+    public BotKeystore(uint uin, string password)
     {
         Uin = uin;
         PasswordMd5 = Encoding.UTF8.GetBytes(password).Md5();
