@@ -38,7 +38,7 @@ public sealed class MessageChain : List<IMessageEntity>
 
     #endregion
 
-    internal MessageChain(uint friendUin, string selfUid, string friendUid, uint targetUin = 0, uint sequence = 0, uint clientSequence = 0, ulong? messageId = null,
+    public MessageChain(uint friendUin, string selfUid, string friendUid, uint targetUin = 0, uint sequence = 0, uint clientSequence = 0, ulong? messageId = null,
         MessageType type = MessageType.Friend)
     {
         GroupUin = null;
@@ -53,7 +53,7 @@ public sealed class MessageChain : List<IMessageEntity>
         Type = type;
     }
 
-    internal MessageChain(uint groupUin)
+    public MessageChain(uint groupUin)
     {
         GroupUin = groupUin;
         Sequence = 0; // unuseful at there
@@ -63,7 +63,7 @@ public sealed class MessageChain : List<IMessageEntity>
         Elements = new List<Elem>();
     }
 
-    internal MessageChain(uint groupUin, uint friendUin, uint sequence, ulong messageId = 0)
+    public MessageChain(uint groupUin, uint friendUin, uint sequence, ulong messageId = 0)
     {
         GroupUin = groupUin;
         FriendUin = friendUin;
