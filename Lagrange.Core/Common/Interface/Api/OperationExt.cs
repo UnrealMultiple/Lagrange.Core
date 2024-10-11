@@ -112,7 +112,7 @@ public static class OperationExt
     /// </summary>
     /// <param name="bot"></param>
     /// <returns></returns>
-    public static Task<List<dynamic>?> FetchFriendRequests(this BotContext bot)
+    public static Task<List<BotFriendRequest>?> FetchFriendRequests(this BotContext bot)
         => bot.ContextCollection.Business.OperationLogic.FetchFriendRequests();
 
     /// <summary>
@@ -241,4 +241,12 @@ public static class OperationExt
 
     public static Task<List<string>?> FetchMarketFaceKey(this BotContext bot, List<string> faceIds)
         => bot.ContextCollection.Business.OperationLogic.FetchMarketFaceKey(faceIds);
+    
+    /// <summary>
+    /// Set the avatar of the bot itself
+    /// </summary>
+    /// <param name="bot">target <see cref="BotContext"/></param>
+    /// <param name="avatar">The avatar object, <see cref="ImageEntity"/></param>
+    public static Task<bool> SetAvatar(this BotContext bot, ImageEntity avatar)
+        => bot.ContextCollection.Business.OperationLogic.SetAvatar(avatar);
 }

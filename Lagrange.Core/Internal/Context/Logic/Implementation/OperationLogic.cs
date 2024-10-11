@@ -4,8 +4,10 @@ using Lagrange.Core.Internal.Context.Uploader;
 using Lagrange.Core.Internal.Event.Action;
 using Lagrange.Core.Internal.Event.Message;
 using Lagrange.Core.Internal.Event.System;
+using Lagrange.Core.Internal.Packets.Service.Highway;
 using Lagrange.Core.Message;
 using Lagrange.Core.Message.Entity;
+using Lagrange.Core.Utility.Extension;
 
 namespace Lagrange.Core.Internal.Context.Logic.Implementation;
 
@@ -327,13 +329,30 @@ internal class OperationLogic : LogicBase
         }
     }
 
-    public async Task<List<dynamic>?> FetchFriendRequests()
+    public async Task<List<BotFriendRequest>?> FetchFriendRequests()
     {
-        var fetchRequestsEvent = FetchFriendsAndFriendGroupsRequestsEvent.Create();
+        var fetchRequestsEvent = FetchFriendsRequestsEvent.Create();
         var events = await Collection.Business.SendEvent(fetchRequestsEvent);
         if (events.Count == 0) return null;
 
-        return null;
+        var resolved = ((FetchFriendsRequestsEvent)events[0]).Requests;
+        foreach (var result in resolved)
+        {
+            var uins = await Task.WhenAll(ResolveUid(result.TargetUid), ResolveUid(result.SourceUid));
+            result.TargetUin = uins[0];
+            result.SourceUin = uins[1];
+        }
+        
+        return resolved;
+        
+        async Task<uint> ResolveUid(string? uid)
+        {
+            if (uid == null) return 0;
+
+            var fetchUidEvent = FetchUserInfoEvent.Create(uid);
+            var e = await Collection.Business.SendEvent(fetchUidEvent);
+            return e.Count == 0 ? 0 : ((FetchUserInfoEvent)e[0]).UserInfo.Uin;
+        }
     }
 
     public async Task<bool> GroupTransfer(uint groupUin, uint targetUin)
@@ -579,5 +598,49 @@ internal class OperationLogic : LogicBase
             .Poke(type, strength)
             .Build();
         return SendMessage(chain);
+    }
+
+    public async Task<bool> SetAvatar(ImageEntity avatar)
+    {
+        if (avatar.ImageStream == null) return false;
+        
+        var highwayUrlEvent = HighwayUrlEvent.Create();
+        var highwayUrlResults = await Collection.Business.SendEvent(highwayUrlEvent);
+        if (highwayUrlResults.Count == 0) return false;
+        
+        var ticket = ((HighwayUrlEvent)highwayUrlResults[0]).SigSession;
+        var md5 = avatar.ImageStream.Value.Md5().UnHex();
+        return await Collection.Highway.UploadSrcByStreamAsync(90, avatar.ImageStream.Value, ticket, md5, Array.Empty<byte>());
+    }
+    
+    public async Task<bool> GroupSetAvatar(uint groupUin, ImageEntity avatar)
+    {
+        if (avatar.ImageStream == null) return false;
+        
+        var highwayUrlEvent = HighwayUrlEvent.Create();
+        var highwayUrlResults = await Collection.Business.SendEvent(highwayUrlEvent);
+        if (highwayUrlResults.Count == 0) return false;
+        
+        var ticket = ((HighwayUrlEvent)highwayUrlResults[0]).SigSession;
+        var md5 = avatar.ImageStream.Value.Md5().UnHex();
+        var extra = new GroupAvatarExtra
+        {
+            Type = 101,
+            GroupUin = groupUin,
+            Field3 = new GroupAvatarExtraField3 { Field1 = 1 },
+            Field5 = 3,
+            Field6 = 1
+        }.Serialize().ToArray();
+        return await Collection.Highway.UploadSrcByStreamAsync(3000, avatar.ImageStream.Value, ticket, md5, extra);
+    }
+    
+    public async Task<(uint, uint)> GroupRemainAtAll(uint groupUin)
+    {
+        var groupRemainAtAllEvent = FetchGroupAtAllRemainEvent.Create(groupUin);
+        var results = await Collection.Business.SendEvent(groupRemainAtAllEvent);
+        if (results.Count == 0) return (0, 0);
+        
+        var ret = (FetchGroupAtAllRemainEvent)results[0];
+        return (ret.RemainAtAllCountForUin, ret.RemainAtAllCountForGroup);
     }
 }
